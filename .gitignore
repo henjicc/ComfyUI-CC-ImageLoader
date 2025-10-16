@@ -1,0 +1,6 @@
+__pycache__/
+.cache/
+.qoder/
+参考资料/
+.DS_Store
+metadata.json
