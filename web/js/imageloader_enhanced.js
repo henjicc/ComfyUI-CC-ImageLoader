@@ -100,8 +100,8 @@ class ImageGallery {
         // 排序和过滤
         this.sortBy = 'date';        // ⭐ 默认按日期排序
         this.sortOrder = 'desc';     // ⭐ 默认降序（最新的在前）
-        this.filterTags = [];
-        this.filterMode = 'OR';
+        this.filterType = 'none';    // ⭐ 过滤类型: none | filename | tags | rating
+        this.filterValue = '';       // ⭐ 过滤值
         
         // 创建 UI
         this.createUI();
@@ -183,25 +183,27 @@ class ImageGallery {
                 <option value="asc">升序</option>
                 <option value="desc" selected>降序</option>
             </select>
+            <label style="margin-left: 16px;">过滤:</label>
+            <select class="lie-filter-type">
+                <option value="none">无过滤</option>
+                <option value="filename">文件名</option>
+                <option value="tags">标签</option>
+                <option value="rating">星标</option>
+            </select>
+            <input type="text" class="lie-filter-input" placeholder="输入过滤条件..." style="display: none;">
+            <select class="lie-rating-filter" style="display: none;">
+                <option value="0">全部</option>
+                <option value="5">⭐⭐⭐⭐⭐</option>
+                <option value="4">⭐⭐⭐⭐</option>
+                <option value="3">⭐⭐⭐</option>
+                <option value="2">⭐⭐</option>
+                <option value="1">⭐</option>
+            </select>
         `;
         
-        // 第三行:标签过滤
-        const toolbar3 = document.createElement("div");
-        toolbar3.className = "lie-toolbar";
-        toolbar3.innerHTML = `
-            <label>标签过滤:</label>
-            <button class="lie-filter-mode-btn or-mode" title="切换 OR/AND 模式">OR</button>
-            <div class="lie-filter-group" style="flex-grow: 1;">
-                <div class="lie-tag-filter">
-                    <input type="text" placeholder="输入标签,逗号分隔..." class="lie-tag-input">
-                    <div class="lie-tag-dropdown"></div>
-                </div>
-            </div>
-        `;
         
         header.appendChild(toolbar1);
         header.appendChild(toolbar2);
-        header.appendChild(toolbar3);
         this.container.appendChild(header);
         
         // 保存元素引用
@@ -210,9 +212,9 @@ class ImageGallery {
         this.refreshBtn = header.querySelector('.lie-refresh-btn');
         this.sortBySelect = header.querySelector('.lie-sort-by');
         this.sortOrderSelect = header.querySelector('.lie-sort-order');
-        this.filterModeBtn = header.querySelector('.lie-filter-mode-btn');
-        this.tagInput = header.querySelector('.lie-tag-input');
-        this.tagDropdown = header.querySelector('.lie-tag-dropdown');
+        this.filterTypeSelect = header.querySelector('.lie-filter-type');
+        this.filterInput = header.querySelector('.lie-filter-input');
+        this.ratingFilter = header.querySelector('.lie-rating-filter');
     }
     
     /**
@@ -301,19 +303,24 @@ class ImageGallery {
             this.applyFiltersAndSort();
         });
         
-        // 过滤模式切换
-        this.filterModeBtn.addEventListener('click', () => {
-            this.filterMode = this.filterMode === 'OR' ? 'AND' : 'OR';
-            this.filterModeBtn.textContent = this.filterMode;
-            this.filterModeBtn.className = `lie-filter-mode-btn ${this.filterMode.toLowerCase()}-mode`;
+        // ⭐ 过滤类型切换
+        this.filterTypeSelect.addEventListener('change', () => {
+            this.filterType = this.filterTypeSelect.value;
+            this.updateFilterUI();
             this.applyFiltersAndSort();
         });
         
-        // 标签输入
-        this.tagInput.addEventListener('input', debounce(() => {
-            this.filterTags = this.tagInput.value.split(',').map(t => t.trim()).filter(Boolean);
+        // ⭐ 过滤输入
+        this.filterInput.addEventListener('input', debounce(() => {
+            this.filterValue = this.filterInput.value.trim();
             this.applyFiltersAndSort();
         }, 300));
+        
+        // ⭐ 星标过滤
+        this.ratingFilter.addEventListener('change', () => {
+            this.filterValue = this.ratingFilter.value;
+            this.applyFiltersAndSort();
+        });
         
         // 标签编辑输入
         this.tagEditInput.addEventListener('keydown', (e) => {
@@ -348,6 +355,34 @@ class ImageGallery {
         this.backdrop.addEventListener('click', () => {
             this.close();
         });
+    }
+    
+    /**
+     * 更新过滤 UI 显示
+     */
+    updateFilterUI() {
+        // 隐藏所有过滤输入
+        this.filterInput.style.display = 'none';
+        this.ratingFilter.style.display = 'none';
+        this.filterValue = '';
+        
+        // 根据过滤类型显示对应的输入框
+        switch(this.filterType) {
+            case 'filename':
+                this.filterInput.style.display = 'inline-block';
+                this.filterInput.placeholder = '输入文件名关键词...';
+                this.filterInput.value = '';
+                break;
+            case 'tags':
+                this.filterInput.style.display = 'inline-block';
+                this.filterInput.placeholder = '输入标签,逗号分隔...';
+                this.filterInput.value = '';
+                break;
+            case 'rating':
+                this.ratingFilter.style.display = 'inline-block';
+                this.ratingFilter.value = '0';
+                break;
+        }
     }
     
     /**
@@ -480,17 +515,33 @@ class ImageGallery {
             return item.type === 'folder' || item.type === 'image';
         });
         
-        // 标签过滤
-        if (this.filterTags.length > 0) {
+        // ⭐ 根据过滤类型应用过滤
+        if (this.filterType !== 'none' && this.filterValue) {
             filteredItems = filteredItems.filter(item => {
+                // 文件夹始终显示
                 if (item.type === 'folder') return true;
-                const itemTags = (item.tags || []).map(t => t.toLowerCase());
-                const filterTagsLower = this.filterTags.map(t => t.toLowerCase());
                 
-                if (this.filterMode === 'AND') {
-                    return filterTagsLower.every(ft => itemTags.includes(ft));
-                } else {
-                    return filterTagsLower.some(ft => itemTags.includes(ft));
+                switch(this.filterType) {
+                    case 'filename':
+                        // 文件名包含关键词（不区分大小写）
+                        return item.name.toLowerCase().includes(this.filterValue.toLowerCase());
+                    
+                    case 'tags':
+                        // 标签过滤（支持逗号分隔的多个标签）
+                        const filterTags = this.filterValue.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+                        if (filterTags.length === 0) return true;
+                        const itemTags = (item.tags || []).map(t => t.toLowerCase());
+                        // 只要包含任意一个标签就显示
+                        return filterTags.some(ft => itemTags.includes(ft));
+                    
+                    case 'rating':
+                        // 星标过滤（大于等于指定星级）
+                        const minRating = parseInt(this.filterValue);
+                        if (minRating === 0) return true;
+                        return (item.rating || 0) >= minRating;
+                    
+                    default:
+                        return true;
                 }
             });
         }
