@@ -100,12 +100,8 @@ class ImageGallery {
         // 排序和过滤
         this.sortBy = 'date';        // ⭐ 默认按日期排序
         this.sortOrder = 'desc';     // ⭐ 默认降序（最新的在前）
-        this.showImages = true;
-        this.showVideos = false;
-        this.showAudio = false;
         this.filterTags = [];
         this.filterMode = 'OR';
-        this.globalSearch = false;
         
         // 创建 UI
         this.createUI();
@@ -187,11 +183,6 @@ class ImageGallery {
                 <option value="asc">升序</option>
                 <option value="desc" selected>降序</option>
             </select>
-            <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
-                <label><input type="checkbox" class="lie-show-images" checked> 图片</label>
-                <label><input type="checkbox" class="lie-show-videos"> 视频</label>
-                <label><input type="checkbox" class="lie-show-audio"> 音频</label>
-            </div>
         `;
         
         // 第三行:标签过滤
@@ -206,11 +197,6 @@ class ImageGallery {
                     <div class="lie-tag-dropdown"></div>
                 </div>
             </div>
-            <label><input type="checkbox" class="lie-global-search"> 全局搜索</label>
-            <div style="margin-left: auto; display: flex; gap: 5px;">
-                <button class="lie-batch-btn" title="全选">全选</button>
-                <button class="lie-batch-btn delete" title="删除选中" disabled>🗑️ 删除</button>
-            </div>
         `;
         
         header.appendChild(toolbar1);
@@ -224,15 +210,9 @@ class ImageGallery {
         this.refreshBtn = header.querySelector('.lie-refresh-btn');
         this.sortBySelect = header.querySelector('.lie-sort-by');
         this.sortOrderSelect = header.querySelector('.lie-sort-order');
-        this.showImagesCheck = header.querySelector('.lie-show-images');
-        this.showVideosCheck = header.querySelector('.lie-show-videos');
-        this.showAudioCheck = header.querySelector('.lie-show-audio');
         this.filterModeBtn = header.querySelector('.lie-filter-mode-btn');
         this.tagInput = header.querySelector('.lie-tag-input');
         this.tagDropdown = header.querySelector('.lie-tag-dropdown');
-        this.globalSearchCheck = header.querySelector('.lie-global-search');
-        this.selectAllBtn = header.querySelectorAll('.lie-batch-btn')[0];
-        this.deleteBtn = header.querySelectorAll('.lie-batch-btn')[1];
     }
     
     /**
@@ -321,22 +301,6 @@ class ImageGallery {
             this.applyFiltersAndSort();
         });
         
-        // 文件类型过滤
-        this.showImagesCheck.addEventListener('change', () => {
-            this.showImages = this.showImagesCheck.checked;
-            this.applyFiltersAndSort();
-        });
-        
-        this.showVideosCheck.addEventListener('change', () => {
-            this.showVideos = this.showVideosCheck.checked;
-            this.applyFiltersAndSort();
-        });
-        
-        this.showAudioCheck.addEventListener('change', () => {
-            this.showAudio = this.showAudioCheck.checked;
-            this.applyFiltersAndSort();
-        });
-        
         // 过滤模式切换
         this.filterModeBtn.addEventListener('click', () => {
             this.filterMode = this.filterMode === 'OR' ? 'AND' : 'OR';
@@ -350,18 +314,6 @@ class ImageGallery {
             this.filterTags = this.tagInput.value.split(',').map(t => t.trim()).filter(Boolean);
             this.applyFiltersAndSort();
         }, 300));
-        
-        // 全局搜索
-        this.globalSearchCheck.addEventListener('change', () => {
-            this.globalSearch = this.globalSearchCheck.checked;
-            this.loadFiles(true);
-        });
-        
-        // 全选
-        this.selectAllBtn.addEventListener('click', () => this.selectAll());
-        
-        // 删除
-        this.deleteBtn.addEventListener('click', () => this.deleteSelected());
         
         // 标签编辑输入
         this.tagEditInput.addEventListener('keydown', (e) => {
@@ -523,13 +475,9 @@ class ImageGallery {
     applyFiltersAndSort() {
         let filteredItems = [...this.allItems];
         
-        // 文件类型过滤
+        // ⭐ 只显示文件夹和图片
         filteredItems = filteredItems.filter(item => {
-            if (item.type === 'folder') return true;
-            if (item.type === 'image') return this.showImages;
-            if (item.type === 'video') return this.showVideos;
-            if (item.type === 'audio') return this.showAudio;
-            return false;
+            return item.type === 'folder' || item.type === 'image';
         });
         
         // 标签过滤
@@ -1110,8 +1058,6 @@ class ImageGallery {
         this.selectedCountSpan.textContent = this.selectedItems.length > 0 
             ? ` | 已选 ${this.selectedItems.length}` 
             : '';
-        
-        this.deleteBtn.disabled = this.selectedItems.length === 0;
     }
     
     /**
