@@ -25,6 +25,8 @@
     flex-direction: column;
     font-family: sans-serif;
     color: var(--fg-color);
+    /* ⭐ 裁剪子元素，确保圆角效果 */
+    overflow: hidden;
 }
 
 /* ⭐ 背景遮罩层 */
@@ -54,6 +56,8 @@
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
     background-color: var(--comfy-menu-bg);
+    /* ⭐ 添加圆角，与外框保持一致 */
+    border-radius: 8px 8px 0 0;
 }
 
 .lie-toolbar {
@@ -567,6 +571,8 @@
     align-items: center;
     font-size: 12px;
     flex-shrink: 0;
+    /* ⭐ 添加圆角，与外框保持一致 */
+    border-radius: 0 0 8px 8px;
 }
 
 .lie-footer-left {
