@@ -268,6 +268,7 @@ class ImageGallery {
                 <span class="lie-selected-count"></span>
             </div>
             <div class="lie-footer-right">
+                <button class="lie-batch-delete-btn" disabled>🗑️ 删除选中</button>
                 <button class="lie-close-btn">关闭</button>
             </div>
         `;
@@ -276,6 +277,7 @@ class ImageGallery {
         
         this.itemCountSpan = footer.querySelector('.lie-item-count');
         this.selectedCountSpan = footer.querySelector('.lie-selected-count');
+        this.batchDeleteBtn = footer.querySelector('.lie-batch-delete-btn');
         this.closeBtn = footer.querySelector('.lie-close-btn');
     }
     
@@ -285,6 +287,9 @@ class ImageGallery {
     attachEvents() {
         // 关闭按钮
         this.closeBtn.addEventListener('click', () => this.close());
+        
+        // ⭐ 批量删除
+        this.batchDeleteBtn.addEventListener('click', () => this.batchDelete());
         
         // 上一级目录
         this.upBtn.addEventListener('click', () => this.navigateUp());
@@ -696,6 +701,12 @@ class ImageGallery {
             const isSelected = this.selectedItems.some(sel => (sel.path || sel.name) === path);
             card.classList.toggle('selected', isSelected);
             
+            // ⭐ 同步复选框状态
+            const checkbox = card.querySelector('.lie-checkbox');
+            if (checkbox) {
+                checkbox.checked = isSelected;
+            }
+            
             const isEditing = this.editingItems.has(path);
             card.classList.toggle('edit-mode', isEditing);
         });
@@ -746,6 +757,9 @@ class ImageGallery {
             
             card.innerHTML = `
                 <div class="lie-card-media">
+                    <div class="lie-checkbox-wrapper">
+                        <input type="checkbox" class="lie-checkbox">
+                    </div>
                     <img src="${thumbnailUrl}" loading="lazy" alt="${item.name}">
                     ${videoOverlay}
                 </div>
@@ -772,6 +786,13 @@ class ImageGallery {
                     // 重新计算布局
                     debounce(() => this.calculateLayout(), 100)();
                 }
+            });
+            
+            // ⭐ 复选框事件
+            const checkbox = card.querySelector('.lie-checkbox');
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleSelection(item);
             });
             
             // 点击图片预览
@@ -988,6 +1009,13 @@ class ImageGallery {
     }
     
     /**
+     * 批量删除
+     */
+    async batchDelete() {
+        await this.deleteSelected();
+    }
+    
+    /**
      * 删除选中项
      */
     async deleteSelected() {
@@ -1005,12 +1033,13 @@ class ImageGallery {
                 });
             }
             
-            showMessage('删除成功');
+            // ⭐ 删除成功后不显示提示，直接刷新
             this.selectedItems = [];
             this.loadFiles(true);
         } catch (error) {
             console.error('删除失败:', error);
-            showMessage('删除失败: ' + error.message);
+            // ⭐ 只在失败时显示错误提示
+            alert(`删除失败: ${error.message}`);
         }
     }
     
@@ -1109,6 +1138,9 @@ class ImageGallery {
         this.selectedCountSpan.textContent = this.selectedItems.length > 0 
             ? ` | 已选 ${this.selectedItems.length}` 
             : '';
+        
+        // ⭐ 启用/禁用批量删除按钮
+        this.batchDeleteBtn.disabled = this.selectedItems.length === 0;
     }
     
     /**
