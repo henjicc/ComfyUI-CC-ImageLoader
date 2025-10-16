@@ -819,7 +819,9 @@ class ImageGallery {
                 star.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const rating = index + 1;
-                    await this.updateRating(item, rating);
+                    // ⭐ 如果点击的是当前评分，则取消评分（变为0星）
+                    const newRating = (item.rating === rating) ? 0 : rating;
+                    await this.updateRating(item, newRating);
                 });
                 
                 star.addEventListener('mouseenter', () => {
@@ -829,7 +831,9 @@ class ImageGallery {
             
             const ratingEl = card.querySelector('.lie-star-rating');
             ratingEl.addEventListener('mouseleave', () => {
-                this.highlightStars(stars, (item.rating || 1) - 1);
+                // ⭐ 修复：使用 ?? 而不是 ||，以支持 0 星
+                const currentRating = (item.rating ?? 0);
+                this.highlightStars(stars, currentRating - 1);
             });
             
             // 编辑按钮
