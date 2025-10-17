@@ -1500,9 +1500,26 @@ class ImageGallery {
         this.container.style.opacity = '0';
         this.backdrop.style.opacity = '0';
         
+        // ⭐ 先设置初始位置（避免从右下角跳转）
+        if (this.settings.popupPosition === 'mouse' && mousePos) {
+            // 跟随鼠标模式 - 先用鼠标位置
+            this.container.style.left = `${mousePos.x}px`;
+            this.container.style.top = `${mousePos.y}px`;
+        } else {
+            // 屏幕中心模式
+            this.container.style.left = '50%';
+            this.container.style.top = '50%';
+        }
+        
+        // ⭐ 设置初始缩放状态（缩小）
+        this.container.style.transform = 'translate(-50%, -50%) scale(0.9)';
+        
         // ⭐ 添加到 DOM
         document.body.appendChild(this.backdrop);
         document.body.appendChild(this.container);
+        
+        // ⭐ 临时设置为 scale(1) 以获取真实尺寸
+        this.container.style.transform = 'translate(-50%, -50%) scale(1)';
         
         // ⭐ 强制浏览器完成布局计算，获取实际尺寸
         void this.container.offsetHeight;
@@ -1510,11 +1527,14 @@ class ImageGallery {
         const popupWidth = rect.width;
         const popupHeight = rect.height;
         
-        // ⭐ 根据设置计算弹窗位置
-        let finalTransform;
+        // ⭐ 立即恢复为 scale(0.9) （动画前的状态）
+        this.container.style.transform = 'translate(-50%, -50%) scale(0.9)';
         
+        // ⭐ 再次强制浏览器完成布局，确保 scale(0.9) 生效
+        void this.container.offsetHeight;
+        
+        // ⭐ 如果是跟随鼠标模式，进行智能边界调整
         if (this.settings.popupPosition === 'mouse' && mousePos) {
-            // ⭐ 跟随鼠标模式 - 智能防超出
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
             
@@ -1541,30 +1561,21 @@ class ImageGallery {
                 centerY = viewportHeight - halfHeight - margin;
             }
             
-            // 设置具体位置
-            this.container.style.left = `${centerX}px`;
-            this.container.style.top = `${centerY}px`;
-            finalTransform = 'translate(-50%, -50%) scale(0.9)';
-        } else {
-            // ⭐ 屏幕中心模式（默认）
-            this.container.style.left = '50%';
-            this.container.style.top = '50%';
-            finalTransform = 'translate(-50%, -50%) scale(0.9)';
+            // ⭐ 如果需要调整，更新位置（但保持scale 0.9）
+            if (centerX !== mousePos.x || centerY !== mousePos.y) {
+                this.container.style.left = `${centerX}px`;
+                this.container.style.top = `${centerY}px`;
+            }
         }
-        
-        this.container.style.transform = finalTransform;
         
         // ⭐ 添加过渡效果
         this.container.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
         this.backdrop.style.transition = 'opacity 0.2s ease';
         
-        // ⭐ 在下一帧触发动画（渐变 + 缩放）
+        // ⭐ 在下一帧触发动画（渐变 + 缩放到正常大小）
         requestAnimationFrame(() => {
             this.backdrop.style.opacity = '1';
             this.container.style.opacity = '1';
-            // 保持当前 left/top，只改变 scale
-            const currentLeft = this.container.style.left;
-            const currentTop = this.container.style.top;
             this.container.style.transform = 'translate(-50%, -50%) scale(1)';
         });
         
