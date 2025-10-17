@@ -449,9 +449,8 @@
     flex-shrink: 0;
     background-color: var(--input-bg);
     padding: 6px 8px;
-    border-top: 1px solid var(--border-color);
     position: relative;
-    /* ⭐ 移除固定高度，改为自适应 */
+    /* ⭐ 移除固定高度,改为自适应 */
     min-height: 20px; /* ⭐ 最小高度 */
     overflow: hidden; /* ⭐ 隐藏溢出内容 */
     box-sizing: border-box;
