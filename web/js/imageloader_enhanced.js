@@ -1473,6 +1473,11 @@ class ImageGallery {
      * 显示浏览器
      */
     show() {
+        // ⭐ 设置初始状态（在添加到DOM之前）
+        this.container.style.opacity = '0';
+        this.container.style.transform = 'translate(-50%, -50%) scale(0.9)';
+        this.backdrop.style.opacity = '0';
+        
         // ⭐ 先添加遮罩层
         document.body.appendChild(this.backdrop);
         // ⭐ 再添加弹窗
@@ -1481,14 +1486,11 @@ class ImageGallery {
         // ⭐ 强制浏览器完成布局计算
         void this.container.offsetHeight;
         
-        // ⭐ 设置初始 transform（稍微缩小）
-        this.container.style.transform = 'translate(-50%, -50%) scale(0.9)';
-        
         // ⭐ 添加过渡效果
         this.container.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
         this.backdrop.style.transition = 'opacity 0.2s ease';
         
-        // ⭐ 在下一帧触发动画
+        // ⭐ 在下一帧触发动画（渐变 + 缩放）
         requestAnimationFrame(() => {
             this.backdrop.style.opacity = '1';
             this.container.style.opacity = '1';
