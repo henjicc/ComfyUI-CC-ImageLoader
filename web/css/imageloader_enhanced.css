@@ -10,22 +10,25 @@
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    /* ⭐ 宽高 */
-    width: 800px;
-    height: 600px;
+    /* ⭐ 动态宽高 - 根据视口大小自适应 */
+    width: 85vw;
+    height: 85vh;
+    /* ⭐ 尺寸约束 - 确保在不同屏幕下的合理范围 */
+    min-width: 600px;  /* 小屏幕最小宽度 */
+    max-width: 1400px; /* 大屏幕最大宽度 */
+    min-height: 500px; /* 小屏幕最小高度 */
+    max-height: 900px; /* 大屏幕最大高度 */
     /* 样式 */
     background-color: var(--comfy-menu-bg);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     z-index: 10000;
-    max-width: 90vw;
-    max-height: 90vh;
     display: flex;
     flex-direction: column;
     font-family: sans-serif;
     color: var(--fg-color);
-    /* ⭐ 裁剪子元素，确保圆角效果 */
+    /* ⭐ 裁剪子元素,确保圆角效果 */
     overflow: hidden;
 }
 
@@ -740,8 +743,12 @@
 }
 
 /* ==================== 响应式设计 ==================== */
+/* ⭐ 小屏幕优化 (手机、平板) */
 @media (max-width: 768px) {
     .lie-context-menu {
+        width: 95vw !important;
+        height: 95vh !important;
+        min-width: unset;
         max-width: 100vw;
         max-height: 100vh;
         border-radius: 0;
@@ -753,6 +760,16 @@
     
     .lie-path-nav {
         flex-basis: 100%;
+    }
+}
+
+/* ⭐ 中等屏幕优化 (小笔记本) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .lie-context-menu {
+        width: 90vw;
+        height: 90vh;
+        max-width: 1000px;
+        max-height: 800px;
     }
 }
 
