@@ -332,18 +332,21 @@ class ImageGallery {
         panel.querySelector('.lie-setting-show-rating').addEventListener('change', (e) => {
             this.settings.showRating = e.target.checked;
             this.saveSettings();
+            this.calculateLayout(); // ⭐ 重新计算布局（高度变化）
             this.refreshAllCards(); // ⭐ 刷新所有卡片
         });
         
         panel.querySelector('.lie-setting-show-tags').addEventListener('change', (e) => {
             this.settings.showTags = e.target.checked;
             this.saveSettings();
+            this.calculateLayout(); // ⭐ 重新计算布局（高度变化）
             this.refreshAllCards(); // ⭐ 刷新所有卡片
         });
         
         panel.querySelector('.lie-setting-show-filename').addEventListener('change', (e) => {
             this.settings.showFilename = e.target.checked;
             this.saveSettings();
+            this.calculateLayout(); // ⭐ 重新计算布局（高度变化）
             this.refreshAllCards(); // ⭐ 刷新所有卡片
         });
         
@@ -402,6 +405,31 @@ class ImageGallery {
         } catch (error) {
             console.error('保存设置失败:', error);
         }
+    }
+    
+    /**
+     * ⭐ 计算信息面板高度（根据显示设置动态调整）
+     */
+    getInfoPanelHeight() {
+        let height = 8; // 基础 padding (6px * 2)
+        
+        // 星级评分行（如果显示）
+        if (this.settings.showRating) {
+            height += 18; // 星级行高度 + 下边距
+        }
+        
+        // 文件名行（如果显示）
+        if (this.settings.showFilename) {
+            height += 15; // 文件名行高度 + 上边距
+        }
+        
+        // 标签行（如果显示）
+        if (this.settings.showTags) {
+            height += 23; // 标签行高度 + 上边距
+        }
+        
+        // 最小高度（至少显示边框）
+        return Math.max(height, 20);
     }
     
     /**
@@ -806,9 +834,11 @@ class ImageGallery {
         const totalGapSpace = (this.columnCount - 1) * this.gap;
         this.cardWidth = (availableWidth - totalGapSpace) / this.columnCount;
         
+        // ⭐ 计算动态信息面板高度
+        const infoPanelHeight = this.getInfoPanelHeight();
+        
         // ⭐ 计算固定的卡片高度（正方形 + 信息面板）
         const imageAreaHeight = this.cardWidth; // 图片区域为正方形
-        const infoPanelHeight = 60; // 信息面板高度
         const fixedCardHeight = imageAreaHeight + infoPanelHeight;
         
         // ⭐ 规整网格布局：按行列排列

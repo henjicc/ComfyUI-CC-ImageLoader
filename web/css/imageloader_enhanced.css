@@ -448,7 +448,8 @@
     padding: 6px 8px;
     border-top: 1px solid var(--border-color);
     position: relative;
-    height: 60px; /* ⭐ 固定高度 */
+    /* ⭐ 移除固定高度，改为自适应 */
+    min-height: 20px; /* ⭐ 最小高度 */
     overflow: hidden; /* ⭐ 隐藏溢出内容 */
     box-sizing: border-box;
     display: flex;
@@ -512,7 +513,7 @@
     gap: 3px;
     margin-top: 3px; /* ⭐ 减小间距 */
     overflow: hidden; /* ⭐ 隐藏溢出部分 */
-    max-height: 20px; /* ⭐ 最多显示一行标签 */
+    max-height: 44px; /* ⭐ 最多显示两行标签 */
 }
 
 .lie-tag {
