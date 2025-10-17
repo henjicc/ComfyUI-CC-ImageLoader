@@ -325,6 +325,17 @@ class ImageGallery {
                     <span>完整显示（可能留白）</span>
                 </label>
             </div>
+            <div class="lie-settings-section">
+                <div class="lie-settings-title">弹窗位置</div>
+                <label class="lie-settings-option">
+                    <input type="radio" name="popup-position" value="center" ${this.settings.popupPosition === 'center' ? 'checked' : ''}>
+                    <span>屏幕中心</span>
+                </label>
+                <label class="lie-settings-option">
+                    <input type="radio" name="popup-position" value="mouse" ${this.settings.popupPosition === 'mouse' ? 'checked' : ''}>
+                    <span>跟随鼠标（智能防超出）</span>
+                </label>
+            </div>
         `;
         
         this.container.appendChild(panel);
@@ -395,6 +406,16 @@ class ImageGallery {
                 }
             });
         });
+        
+        // ⭐ 弹窗位置变更
+        panel.querySelectorAll('input[name="popup-position"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    this.settings.popupPosition = e.target.value;
+                    this.saveSettings();
+                }
+            });
+        });
     }
     
     /**
@@ -408,7 +429,8 @@ class ImageGallery {
             thumbnailSize: 150,  // ⭐ 默认为小 (150px)
             sortBy: 'date',      // ⭐ 默认排序方式：日期
             sortOrder: 'desc',   // ⭐ 默认排序顺序：降序
-            imageFit: 'cover'    // ⭐ 默认图片填充模式：cover(填充) / contain(完整)
+            imageFit: 'cover',   // ⭐ 默认图片填充模式：cover(填充) / contain(完整)
+            popupPosition: 'center' // ⭐ 默认弹窗位置：center(屏幕中心) / mouse(跟随鼠标)
         };
         
         try {
@@ -1471,20 +1493,66 @@ class ImageGallery {
     
     /**
      * 显示浏览器
+     * @param {Object} mousePos - 鼠标位置 {x, y}，可选
      */
-    show() {
+    show(mousePos = null) {
         // ⭐ 设置初始状态（在添加到DOM之前）
         this.container.style.opacity = '0';
-        this.container.style.transform = 'translate(-50%, -50%) scale(0.9)';
         this.backdrop.style.opacity = '0';
         
-        // ⭐ 先添加遮罩层
+        // ⭐ 添加到 DOM
         document.body.appendChild(this.backdrop);
-        // ⭐ 再添加弹窗
         document.body.appendChild(this.container);
         
-        // ⭐ 强制浏览器完成布局计算
+        // ⭐ 强制浏览器完成布局计算，获取实际尺寸
         void this.container.offsetHeight;
+        const rect = this.container.getBoundingClientRect();
+        const popupWidth = rect.width;
+        const popupHeight = rect.height;
+        
+        // ⭐ 根据设置计算弹窗位置
+        let finalTransform;
+        
+        if (this.settings.popupPosition === 'mouse' && mousePos) {
+            // ⭐ 跟随鼠标模式 - 智能防超出
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // 计算理想位置（以弹窗中心为准）
+            let centerX = mousePos.x;
+            let centerY = mousePos.y;
+            
+            // 智能边界检测和调整
+            const halfWidth = popupWidth / 2;
+            const halfHeight = popupHeight / 2;
+            const margin = 20; // 边界留白
+            
+            // 水平边界检测
+            if (centerX - halfWidth < margin) {
+                centerX = halfWidth + margin;
+            } else if (centerX + halfWidth > viewportWidth - margin) {
+                centerX = viewportWidth - halfWidth - margin;
+            }
+            
+            // 垂直边界检测
+            if (centerY - halfHeight < margin) {
+                centerY = halfHeight + margin;
+            } else if (centerY + halfHeight > viewportHeight - margin) {
+                centerY = viewportHeight - halfHeight - margin;
+            }
+            
+            // 设置具体位置
+            this.container.style.left = `${centerX}px`;
+            this.container.style.top = `${centerY}px`;
+            finalTransform = 'translate(-50%, -50%) scale(0.9)';
+        } else {
+            // ⭐ 屏幕中心模式（默认）
+            this.container.style.left = '50%';
+            this.container.style.top = '50%';
+            finalTransform = 'translate(-50%, -50%) scale(0.9)';
+        }
+        
+        this.container.style.transform = finalTransform;
         
         // ⭐ 添加过渡效果
         this.container.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
@@ -1494,6 +1562,9 @@ class ImageGallery {
         requestAnimationFrame(() => {
             this.backdrop.style.opacity = '1';
             this.container.style.opacity = '1';
+            // 保持当前 left/top，只改变 scale
+            const currentLeft = this.container.style.left;
+            const currentTop = this.container.style.top;
             this.container.style.transform = 'translate(-50%, -50%) scale(1)';
         });
         
@@ -1641,6 +1712,15 @@ const ext = {
                 console.warn('Failed to get current image path:', e);
             }
             
+            // ⭐ 捕获鼠标位置（从 options.event 中获取）
+            let mousePos = null;
+            if (options && options.event) {
+                mousePos = {
+                    x: options.event.clientX || options.event.pageX || window.innerWidth / 2,
+                    y: options.event.clientY || options.event.pageY || window.innerHeight / 2
+                };
+            }
+            
             // 创建增强图片浏览器
             const gallery = new ImageGallery({
                 inputDir: '', // 从 folder_paths 获取
@@ -1698,8 +1778,9 @@ const ext = {
                 }
             });
             
-            // 立即显示浏览器（不创建原始菜单，避免闪烁）
-            gallery.show();
+            // ⭐ 立即显示浏览器（不创建原始菜单，避免闪烁）
+            // 传递鼠标位置
+            gallery.show(mousePos);
             
             // 返回一个空的菜单对象，避免报错
             return {
