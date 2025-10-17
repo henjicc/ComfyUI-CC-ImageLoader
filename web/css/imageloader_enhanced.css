@@ -46,7 +46,7 @@
     --border-color: #555;
     --fg-color: #ccc;
     --hover-bg: #444;
-    --selected-bg: #00FFC9;
+    --selected-bg: #61A6FB;
     --input-bg: #333;
 }
 
@@ -599,6 +599,29 @@
     gap: 8px;
 }
 
+/* ⭐ 批量标签按钮 */
+.lie-batch-tag-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    background-color: var(--input-bg);
+    color: var(--fg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lie-batch-tag-btn:not(:disabled):hover {
+    background-color: #27AE60;
+    border-color: #27AE60;
+    color: white;
+}
+
+.lie-batch-tag-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* ⭐ 批量删除按钮 */
 .lie-batch-delete-btn {
     padding: 4px 12px;
@@ -756,4 +779,74 @@
 .lie-tag-dropdown::-webkit-scrollbar-thumb {
     background-color: #555;
     border-radius: 3px;
+}
+
+/* ==================== 设置面板 ==================== */
+.lie-settings-panel {
+    position: absolute;
+    top: 80px; /* 在工具栏下方 */
+    right: 10px;
+    background-color: var(--comfy-menu-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    min-width: 200px;
+    z-index: 10001;
+}
+
+.lie-settings-section {
+    margin-bottom: 12px;
+}
+
+.lie-settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.lie-settings-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--fg-color);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.lie-settings-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.lie-settings-option:hover {
+    background-color: var(--hover-bg);
+}
+
+.lie-settings-option input[type="checkbox"],
+.lie-settings-option input[type="radio"] {
+    cursor: pointer;
+    accent-color: var(--selected-bg);
+}
+
+.lie-settings-option span {
+    font-size: 12px;
+    color: var(--fg-color);
+    user-select: none;
+}
+
+/* ⭐ 设置按钮样式 */
+.lie-settings-btn {
+    width: 32px;
+    height: 26px;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.lie-settings-btn svg {
+    width: 14px;
+    height: 14px;
 }

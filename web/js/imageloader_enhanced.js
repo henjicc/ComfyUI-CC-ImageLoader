@@ -86,6 +86,9 @@ class ImageGallery {
         this.selectedItems = [];
         this.editingItems = new Set();
         
+        // ⭐ 设置选项（从 localStorage 加载）
+        this.settings = this.loadSettings();
+        
         // 布局参数
         this.columnCount = 0;
         this.cardWidth = 0;
@@ -93,7 +96,7 @@ class ImageGallery {
         this.containerHeight = 0;
         
         // 配置
-        this.minCardWidth = 150;
+        this.minCardWidth = this.settings.thumbnailSize; // ⭐ 使用设置的缩略图大小
         this.gap = 5;
         this.virtualPadding = 500;
         
@@ -128,6 +131,9 @@ class ImageGallery {
         
         // 头部工具栏
         this.createHeader();
+        
+        // ⭐ 设置面板
+        this.createSettingsPanel();
         
         // 图片网格
         this.createGallery();
@@ -199,6 +205,12 @@ class ImageGallery {
                 <option value="2">⭐⭐</option>
                 <option value="1">⭐</option>
             </select>
+            <button class="lie-settings-btn" title="设置" style="margin-left: auto;">
+                <svg width="14" height="14" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18.2838 43.1713C14.9327 42.1736 11.9498 40.3213 9.58787 37.867C10.469 36.8227 11 35.4734 11 34.0001C11 30.6864 8.31371 28.0001 5 28.0001C4.79955 28.0001 4.60139 28.01 4.40599 28.0292C4.13979 26.7277 4 25.3803 4 24.0001C4 21.9095 4.32077 19.8938 4.91579 17.9995C4.94381 17.9999 4.97188 18.0001 5 18.0001C8.31371 18.0001 11 15.3138 11 12.0001C11 11.0488 10.7786 10.1493 10.3846 9.35011C12.6975 7.1995 15.5205 5.59002 18.6521 4.72314C19.6444 6.66819 21.6667 8.00013 24 8.00013C26.3333 8.00013 28.3556 6.66819 29.3479 4.72314C32.4795 5.59002 35.3025 7.1995 37.6154 9.35011C37.2214 10.1493 37 11.0488 37 12.0001C37 15.3138 39.6863 18.0001 43 18.0001C43.0281 18.0001 43.0562 17.9999 43.0842 17.9995C43.6792 19.8938 44 21.9095 44 24.0001C44 25.3803 43.8602 26.7277 43.594 28.0292C43.3986 28.01 43.2005 28.0001 43 28.0001C39.6863 28.0001 37 30.6864 37 34.0001C37 35.4734 37.531 36.8227 38.4121 37.867C36.0502 40.3213 33.0673 42.1736 29.7162 43.1713C28.9428 40.752 26.676 39.0001 24 39.0001C21.324 39.0001 19.0572 40.752 18.2838 43.1713Z" fill="none" stroke="#c3c3c3" stroke-width="4" stroke-linejoin="round"/>
+                    <path d="M24 31C27.866 31 31 27.866 31 24C31 20.134 27.866 17 24 17C20.134 17 17 20.134 17 24C17 27.866 20.134 31 24 31Z" fill="none" stroke="#c3c3c3" stroke-width="4" stroke-linejoin="round"/>
+                </svg>
+            </button>
         `;
         
         
@@ -215,6 +227,7 @@ class ImageGallery {
         this.filterTypeSelect = header.querySelector('.lie-filter-type');
         this.filterInput = header.querySelector('.lie-filter-input');
         this.ratingFilter = header.querySelector('.lie-rating-filter');
+        this.settingsBtn = header.querySelector('.lie-settings-btn'); // ⭐ 设置按钮
     }
     
     /**
@@ -257,6 +270,111 @@ class ImageGallery {
     }
     
     /**
+     * ⭐ 创建设置面板
+     */
+    createSettingsPanel() {
+        const panel = document.createElement("div");
+        panel.className = "lie-settings-panel";
+        panel.style.display = 'none';
+        panel.innerHTML = `
+            <div class="lie-settings-section">
+                <div class="lie-settings-title">显示选项</div>
+                <label class="lie-settings-option">
+                    <input type="checkbox" class="lie-setting-show-rating" ${this.settings.showRating ? 'checked' : ''}>
+                    <span>显示星标评分</span>
+                </label>
+                <label class="lie-settings-option">
+                    <input type="checkbox" class="lie-setting-show-tags" ${this.settings.showTags ? 'checked' : ''}>
+                    <span>显示标签</span>
+                </label>
+                <label class="lie-settings-option">
+                    <input type="checkbox" class="lie-setting-show-filename" ${this.settings.showFilename ? 'checked' : ''}>
+                    <span>显示文件名</span>
+                </label>
+            </div>
+            <div class="lie-settings-section">
+                <div class="lie-settings-title">缩略图大小</div>
+                <label class="lie-settings-option">
+                    <input type="radio" name="thumbnail-size" value="150" ${this.settings.thumbnailSize === 150 ? 'checked' : ''}>
+                    <span>小 (150px)</span>
+                </label>
+                <label class="lie-settings-option">
+                    <input type="radio" name="thumbnail-size" value="200" ${this.settings.thumbnailSize === 200 ? 'checked' : ''}>
+                    <span>中 (200px)</span>
+                </label>
+                <label class="lie-settings-option">
+                    <input type="radio" name="thumbnail-size" value="300" ${this.settings.thumbnailSize === 300 ? 'checked' : ''}>
+                    <span>大 (300px)</span>
+                </label>
+            </div>
+        `;
+        
+        this.container.appendChild(panel);
+        this.settingsPanel = panel;
+        
+        // 绑定设置变更事件
+        panel.querySelector('.lie-setting-show-rating').addEventListener('change', (e) => {
+            this.settings.showRating = e.target.checked;
+            this.saveSettings();
+            this.refreshAllCards(); // ⭐ 刷新所有卡片
+        });
+        
+        panel.querySelector('.lie-setting-show-tags').addEventListener('change', (e) => {
+            this.settings.showTags = e.target.checked;
+            this.saveSettings();
+            this.refreshAllCards(); // ⭐ 刷新所有卡片
+        });
+        
+        panel.querySelector('.lie-setting-show-filename').addEventListener('change', (e) => {
+            this.settings.showFilename = e.target.checked;
+            this.saveSettings();
+            this.refreshAllCards(); // ⭐ 刷新所有卡片
+        });
+        
+        panel.querySelectorAll('input[name="thumbnail-size"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    this.settings.thumbnailSize = parseInt(e.target.value);
+                    this.minCardWidth = this.settings.thumbnailSize;
+                    this.saveSettings();
+                    this.calculateLayout();
+                }
+            });
+        });
+    }
+    
+    /**
+     * ⭐ 加载设置
+     */
+    loadSettings() {
+        const defaultSettings = {
+            showRating: true,
+            showTags: true,
+            showFilename: true,
+            thumbnailSize: 150  // ⭐ 默认为小 (150px)
+        };
+        
+        try {
+            const saved = localStorage.getItem('imageloader_settings');
+            return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+        } catch (error) {
+            console.error('加载设置失败:', error);
+            return defaultSettings;
+        }
+    }
+    
+    /**
+     * ⭐ 保存设置
+     */
+    saveSettings() {
+        try {
+            localStorage.setItem('imageloader_settings', JSON.stringify(this.settings));
+        } catch (error) {
+            console.error('保存设置失败:', error);
+        }
+    }
+    
+    /**
      * 创建底部状态栏
      */
     createFooter() {
@@ -268,6 +386,7 @@ class ImageGallery {
                 <span class="lie-selected-count"></span>
             </div>
             <div class="lie-footer-right">
+                <button class="lie-batch-tag-btn" disabled>🏷️ 批量标签</button>
                 <button class="lie-batch-delete-btn" disabled>🗑️ 删除选中</button>
                 <button class="lie-close-btn">关闭</button>
             </div>
@@ -277,6 +396,7 @@ class ImageGallery {
         
         this.itemCountSpan = footer.querySelector('.lie-item-count');
         this.selectedCountSpan = footer.querySelector('.lie-selected-count');
+        this.batchTagBtn = footer.querySelector('.lie-batch-tag-btn');
         this.batchDeleteBtn = footer.querySelector('.lie-batch-delete-btn');
         this.closeBtn = footer.querySelector('.lie-close-btn');
     }
@@ -288,8 +408,20 @@ class ImageGallery {
         // 关闭按钮
         this.closeBtn.addEventListener('click', () => this.close());
         
+        // ⭐ 批量标签
+        this.batchTagBtn.addEventListener('click', (e) => {
+            e.stopPropagation();  // 防止触发点击外部关闭
+            this.toggleBatchTagging();
+        });
+        
         // ⭐ 批量删除
         this.batchDeleteBtn.addEventListener('click', () => this.batchDelete());
+        
+        // ⭐ 设置按钮
+        this.settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleSettings();
+        });
         
         // 上一级目录
         this.upBtn.addEventListener('click', () => this.navigateUp());
@@ -330,8 +462,44 @@ class ImageGallery {
         // 标签编辑输入
         this.tagEditInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
-                this.addTagToSelected(this.tagEditInput.value.trim());
-                this.tagEditInput.value = '';
+                e.preventDefault();
+                const tag = this.tagEditInput.value.trim();
+                if (tag) {
+                    this.addTagToSelected(tag);
+                    this.tagEditInput.value = '';
+                }
+            } else if (e.key === 'Escape') {
+                // ⭐ ESC 键关闭编辑
+                this.editingItems.clear();
+                this.renderTagEditor();
+                this.updateVisibleItems();
+            }
+        });
+        
+        // ⭐ 点击外部关闭标签编辑和设置面板
+        document.addEventListener('click', (e) => {
+            // 关闭标签编辑
+            if (this.editingItems.size > 0) {
+                const isClickInside = this.metadataPanel.contains(e.target) || 
+                                     e.target.classList.contains('lie-edit-btn') ||
+                                     e.target.closest('.lie-edit-btn') ||
+                                     e.target.classList.contains('lie-batch-tag-btn') ||
+                                     e.target.closest('.lie-batch-tag-btn');
+                if (!isClickInside) {
+                    this.editingItems.clear();
+                    this.renderTagEditor();
+                    this.updateVisibleItems();
+                }
+            }
+            
+            // 关闭设置面板
+            if (this.settingsPanel && this.settingsPanel.style.display === 'block') {
+                const isClickInside = this.settingsPanel.contains(e.target) ||
+                                     e.target.classList.contains('lie-settings-btn') ||
+                                     e.target.closest('.lie-settings-btn');
+                if (!isClickInside) {
+                    this.settingsPanel.style.display = 'none';
+                }
             }
         });
         
@@ -341,11 +509,11 @@ class ImageGallery {
             this.updateVisibleItems();
         }, 50));
         
-        // 窗口大小变化
+        // 窗口大小变化 - ⭐ 增加防抖延迟，避免在动画期间触发
         const resizeObserver = new ResizeObserver(debounce(() => {
             this.containerHeight = this.gallery.clientHeight;
             this.calculateLayout();
-        }, 100));
+        }, 250)); // ⭐ 从 100ms 增加到 250ms，确保弹窗动画(200ms)完成后才重算布局
         resizeObserver.observe(this.gallery);
         
         // 键盘快捷键
@@ -607,7 +775,8 @@ class ImageGallery {
             // 计算卡片高度
             let cardHeight;
             if (item.type === 'folder') {
-                cardHeight = 150; // 文件夹固定高度
+                // ⭐ 文件夹高度根据宽度动态计算（保持正方形）
+                cardHeight = this.cardWidth * 0.9; // 略小于宽度，留出名称空间
             } else if (item.type === 'image' || item.type === 'video') {
                 // 图片高度 = 图片区域 + 信息面板
                 const aspectRatio = item.aspectRatio || 1.0;
@@ -715,6 +884,18 @@ class ImageGallery {
     }
     
     /**
+     * ⭐ 刷新所有卡片（强制重新创建）
+     */
+    refreshAllCards() {
+        // 移除所有现有卡片
+        const allCards = this.gallery.querySelectorAll('.lie-card');
+        allCards.forEach(card => card.remove());
+        
+        // 重新渲染可见卡片
+        this.updateVisibleItems();
+    }
+    
+    /**
      * 创建卡片元素
      */
     createCard(item) {
@@ -764,7 +945,7 @@ class ImageGallery {
                     ${videoOverlay}
                 </div>
                 <div class="lie-card-info">
-                    <div class="lie-info-top">
+                    <div class="lie-info-top" style="display: ${this.settings.showRating ? 'flex' : 'none'};">
                         <div class="lie-star-rating">
                             ${this.createStars(item.rating || 0)}
                         </div>
@@ -776,8 +957,8 @@ class ImageGallery {
                         </button>
                         ${item.has_workflow ? '<div class="lie-workflow-badge">Workflow</div>' : ''}
                     </div>
-                    <div class="lie-filename" title="${item.name}">${item.name}</div>
-                    <div class="lie-tags">
+                    <div class="lie-filename" title="${item.name}" style="display: ${this.settings.showFilename ? 'block' : 'none'};">${item.name}</div>
+                    <div class="lie-tags" style="display: ${this.settings.showTags ? 'flex' : 'none'};">
                         ${(item.tags || []).map(tag => `<span class="lie-tag">${tag}</span>`).join('')}
                     </div>
                 </div>
@@ -1026,6 +1207,43 @@ class ImageGallery {
     }
     
     /**
+     * ⭐ 切换批量标签模式
+     */
+    toggleBatchTagging() {
+        if (this.selectedItems.length === 0) return;
+        
+        // 清空单图编辑模式
+        this.editingItems.clear();
+        
+        // 将所有选中项添加到编辑列表
+        this.selectedItems.forEach(item => {
+            const path = item.path || item.name;
+            this.editingItems.add(path);
+        });
+        
+        this.renderTagEditor();
+        this.updateVisibleItems();
+        
+        // ⭐ 自动聚焦到输入框（延迟确保面板已渲染）
+        setTimeout(() => {
+            if (this.tagEditInput && this.metadataPanel.classList.contains('show')) {
+                this.tagEditInput.focus();
+            }
+        }, 150);
+    }
+    
+    /**
+     * ⭐ 切换设置面板
+     */
+    toggleSettings() {
+        if (this.settingsPanel.style.display === 'block') {
+            this.settingsPanel.style.display = 'none';
+        } else {
+            this.settingsPanel.style.display = 'block';
+        }
+    }
+    
+    /**
      * 删除选中项
      */
     async deleteSelected() {
@@ -1063,13 +1281,21 @@ class ImageGallery {
             for (const path of this.editingItems) {
                 const item = this.allItems.find(i => i.path === path);
                 if (item) {
-                    const newTags = [...new Set([...item.tags, tag])];
+                    // ⭐ 修复：确保 item.tags 是数组
+                    const currentTags = item.tags || [];
+                    const newTags = [...new Set([...currentTags, tag])];
                     await api.fetchApi('/imageloader/metadata', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ path, tags: newTags })
                     });
                     item.tags = newTags;
+                    
+                    // ⭐ 移除对应的卡片DOM，强制重新渲染
+                    const card = this.gallery.querySelector(`[data-path="${path}"]`);
+                    if (card) {
+                        card.remove();
+                    }
                 }
             }
             
@@ -1094,7 +1320,11 @@ class ImageGallery {
         this.metadataPanel.classList.add('show');
         
         // 找出公共标签
-        const itemsToEdit = this.allItems.filter(item => this.editingItems.has(item.path));
+        const itemsToEdit = this.allItems.filter(item => {
+            const itemPath = item.path || item.name;
+            return this.editingItems.has(itemPath);
+        });
+        
         const allTagArrays = itemsToEdit.map(item => item.tags || []);
         const commonTags = allTagArrays.length > 0 
             ? allTagArrays.reduce((acc, tags) => acc.filter(tag => tags.includes(tag)))
@@ -1124,13 +1354,21 @@ class ImageGallery {
             for (const path of this.editingItems) {
                 const item = this.allItems.find(i => i.path === path);
                 if (item) {
-                    const newTags = item.tags.filter(t => t !== tag);
+                    // ⭐ 修复：确保 item.tags 是数组
+                    const currentTags = item.tags || [];
+                    const newTags = currentTags.filter(t => t !== tag);
                     await api.fetchApi('/imageloader/metadata', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ path, tags: newTags })
                     });
                     item.tags = newTags;
+                    
+                    // ⭐ 移除对应的卡片DOM，强制重新渲染
+                    const card = this.gallery.querySelector(`[data-path="${path}"]`);
+                    if (card) {
+                        card.remove();
+                    }
                 }
             }
             
@@ -1149,8 +1387,10 @@ class ImageGallery {
             ? ` | 已选 ${this.selectedItems.length}` 
             : '';
         
-        // ⭐ 启用/禁用批量删除按钮
-        this.batchDeleteBtn.disabled = this.selectedItems.length === 0;
+        // ⭐ 启用/禁用批量按钮
+        const hasSelection = this.selectedItems.length > 0;
+        this.batchTagBtn.disabled = !hasSelection;
+        this.batchDeleteBtn.disabled = !hasSelection;
     }
     
     /**
