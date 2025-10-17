@@ -98,11 +98,12 @@ class ImageGallery {
         // 配置
         this.minCardWidth = this.settings.thumbnailSize; // ⭐ 使用设置的缩略图大小
         this.gap = 5;
-        this.virtualPadding = 500;
+        this.virtualPadding = 1500;  // ⭐ 虚拟滚动缓冲区（像素），控制预渲染范围，增大可减少跳动但会增加渲染压力
+        this.layoutDebounceDelay = 200;  // ⭐ 布局重算防抖延迟（毫秒），图片加载时避免频繁重算
         
         // 排序和过滤
-        this.sortBy = 'date';        // ⭐ 默认按日期排序
-        this.sortOrder = 'desc';     // ⭐ 默认降序（最新的在前）
+        this.sortBy = this.settings.sortBy;        // ⭐ 从设置加载排序方式
+        this.sortOrder = this.settings.sortOrder;  // ⭐ 从设置加载排序顺序
         this.filterType = 'none';    // ⭐ 过滤类型: none | filename | tags | rating
         this.filterValue = '';       // ⭐ 过滤值
         
@@ -182,12 +183,12 @@ class ImageGallery {
             <label>排序:</label>
             <select class="lie-sort-by">
                 <option value="name">名称</option>
-                <option value="date" selected>日期</option>
+                <option value="date">日期</option>
                 <option value="rating">评分</option>
             </select>
             <select class="lie-sort-order">
                 <option value="asc">升序</option>
-                <option value="desc" selected>降序</option>
+                <option value="desc">降序</option>
             </select>
             <label style="margin-left: 16px;">过滤:</label>
             <select class="lie-filter-type">
@@ -228,6 +229,10 @@ class ImageGallery {
         this.filterInput = header.querySelector('.lie-filter-input');
         this.ratingFilter = header.querySelector('.lie-rating-filter');
         this.settingsBtn = header.querySelector('.lie-settings-btn'); // ⭐ 设置按钮
+        
+        // ⭐ 设置排序选项的初始值
+        this.sortBySelect.value = this.settings.sortBy;
+        this.sortOrderSelect.value = this.settings.sortOrder;
     }
     
     /**
@@ -307,6 +312,17 @@ class ImageGallery {
                     <span>大 (300px)</span>
                 </label>
             </div>
+            <div class="lie-settings-section">
+                <div class="lie-settings-title">图片填充模式</div>
+                <label class="lie-settings-option">
+                    <input type="radio" name="image-fit" value="cover" ${this.settings.imageFit === 'cover' ? 'checked' : ''}>
+                    <span>填充满网格（可能裁剪）</span>
+                </label>
+                <label class="lie-settings-option">
+                    <input type="radio" name="image-fit" value="contain" ${this.settings.imageFit === 'contain' ? 'checked' : ''}>
+                    <span>完整显示（可能留白）</span>
+                </label>
+            </div>
         `;
         
         this.container.appendChild(panel);
@@ -341,6 +357,17 @@ class ImageGallery {
                 }
             });
         });
+        
+        // ⭐ 图片填充模式变更
+        panel.querySelectorAll('input[name="image-fit"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    this.settings.imageFit = e.target.value;
+                    this.saveSettings();
+                    this.refreshAllCards(); // ⭐ 刷新所有卡片以应用新的填充模式
+                }
+            });
+        });
     }
     
     /**
@@ -351,7 +378,10 @@ class ImageGallery {
             showRating: true,
             showTags: true,
             showFilename: true,
-            thumbnailSize: 150  // ⭐ 默认为小 (150px)
+            thumbnailSize: 150,  // ⭐ 默认为小 (150px)
+            sortBy: 'date',      // ⭐ 默认排序方式：日期
+            sortOrder: 'desc',   // ⭐ 默认排序顺序：降序
+            imageFit: 'cover'    // ⭐ 默认图片填充模式：cover(填充) / contain(完整)
         };
         
         try {
@@ -432,11 +462,15 @@ class ImageGallery {
         // 排序
         this.sortBySelect.addEventListener('change', () => {
             this.sortBy = this.sortBySelect.value;
+            this.settings.sortBy = this.sortBy;  // ⭐ 保存到设置
+            this.saveSettings();
             this.applyFiltersAndSort();
         });
         
         this.sortOrderSelect.addEventListener('change', () => {
             this.sortOrder = this.sortOrderSelect.value;
+            this.settings.sortOrder = this.sortOrder;  // ⭐ 保存到设置
+            this.saveSettings();
             this.applyFiltersAndSort();
         });
         
@@ -752,7 +786,7 @@ class ImageGallery {
     }
     
     /**
-     * 计算布局 - 瀑布流算法
+     * 计算布局 - 规整网格算法
      */
     calculateLayout() {
         const containerWidth = this.gallery.clientWidth;
@@ -772,47 +806,34 @@ class ImageGallery {
         const totalGapSpace = (this.columnCount - 1) * this.gap;
         this.cardWidth = (availableWidth - totalGapSpace) / this.columnCount;
         
-        // ⭐ 初始化列高度数组（从 topPadding 开始）
-        const columnHeights = new Array(this.columnCount).fill(topPadding);
+        // ⭐ 计算固定的卡片高度（正方形 + 信息面板）
+        const imageAreaHeight = this.cardWidth; // 图片区域为正方形
+        const infoPanelHeight = 60; // 信息面板高度
+        const fixedCardHeight = imageAreaHeight + infoPanelHeight;
         
-        // 计算每个卡片的位置
+        // ⭐ 规整网格布局：按行列排列
         this.layoutData = this.allItems.map((item, index) => {
-            // 计算卡片高度
-            let cardHeight;
-            if (item.type === 'folder') {
-                // ⭐ 文件夹高度根据宽度动态计算（保持正方形）
-                cardHeight = this.cardWidth * 0.9; // 略小于宽度，留出名称空间
-            } else if (item.type === 'image' || item.type === 'video') {
-                // 图片高度 = 图片区域 + 信息面板
-                const aspectRatio = item.aspectRatio || 1.0;
-                const imageHeight = Math.max(100, this.cardWidth / aspectRatio);
-                const infoPanelHeight = 60; // 估计信息面板高度
-                cardHeight = imageHeight + infoPanelHeight;
-            } else {
-                cardHeight = 150; // 音频等其他类型
-            }
+            const rowIndex = Math.floor(index / this.columnCount);
+            const columnIndex = index % this.columnCount;
             
-            // 找到最短的列
-            const minHeight = Math.min(...columnHeights);
-            const columnIndex = columnHeights.indexOf(minHeight);
+            // ⭐ 所有卡片使用相同的固定高度
+            const cardHeight = fixedCardHeight;
             
-            // ⭐ 计算位置（加上左侧 padding，top 已经包含在 columnHeights 中）
             const position = {
                 left: leftPadding + columnIndex * (this.cardWidth + this.gap),
-                top: minHeight,
+                top: topPadding + rowIndex * (fixedCardHeight + this.gap),
                 width: this.cardWidth,
                 height: cardHeight,
+                rowIndex: rowIndex,
                 columnIndex: columnIndex
             };
-            
-            // 更新列高度
-            columnHeights[columnIndex] += cardHeight + this.gap;
             
             return position;
         });
         
-        // 设置容器总高度
-        const totalHeight = Math.max(...columnHeights);
+        // ⭐ 设置容器总高度（基于总行数）
+        const totalRows = Math.ceil(this.allItems.length / this.columnCount);
+        const totalHeight = topPadding + totalRows * (fixedCardHeight + this.gap);
         this.gallery.style.height = `${totalHeight}px`;
         
         this.updateVisibleItems();
@@ -870,6 +891,7 @@ class ImageGallery {
             card.style.left = `${layout.left}px`;
             card.style.top = `${layout.top}px`;
             card.style.width = `${layout.width}px`;
+            card.style.height = `${layout.height}px`; // ⭐ 设置固定高度
             
             // 更新选中状态
             const isSelected = this.selectedItems.some(sel => (sel.path || sel.name) === path);
@@ -941,8 +963,11 @@ class ImageGallery {
                 </div>
             ` : '';
             
+            // ⭐ 根据设置应用图片填充模式
+            const imageFitClass = this.settings.imageFit === 'contain' ? 'fit-contain' : 'fit-cover';
+            
             card.innerHTML = `
-                <div class="lie-card-media">
+                <div class="lie-card-media ${imageFitClass}">
                     <div class="lie-checkbox-wrapper">
                         <input type="checkbox" class="lie-checkbox">
                     </div>
@@ -969,16 +994,8 @@ class ImageGallery {
                 </div>
             `;
             
-            // 图片加载事件 - 更新宽高比
-            const img = card.querySelector('img');
-            img.addEventListener('load', () => {
-                const aspectRatio = img.naturalWidth / img.naturalHeight;
-                if (aspectRatio && isFinite(aspectRatio)) {
-                    item.aspectRatio = aspectRatio;
-                    // 重新计算布局
-                    debounce(() => this.calculateLayout(), 100)();
-                }
-            });
+            // ⭐ 图片加载事件 - 网格布局不需要重新计算布局
+            // 因为所有卡片高度固定，图片宽高比不影响布局
             
             // ⭐ 复选框事件
             const checkbox = card.querySelector('.lie-checkbox');
