@@ -762,13 +762,18 @@ class ImageGallery {
             return;
         }
         
-        // 计算列数和卡片宽度
-        this.columnCount = Math.max(1, Math.floor(containerWidth / (this.minCardWidth + this.gap)));
-        const totalGapSpace = (this.columnCount - 1) * this.gap;
-        this.cardWidth = (containerWidth - totalGapSpace) / this.columnCount;
+        // ⭐ 计算列数和卡片宽度（左右完全对称）
+        const leftPadding = 6; // 左侧 padding
+        const rightPadding = 6; // 右侧 padding（滚动条完全在这6px内）
+        const topPadding = 6; // ⭐ 顶部 padding
+        const availableWidth = containerWidth - leftPadding - rightPadding;
         
-        // 初始化列高度数组
-        const columnHeights = new Array(this.columnCount).fill(0);
+        this.columnCount = Math.max(1, Math.floor(availableWidth / (this.minCardWidth + this.gap)));
+        const totalGapSpace = (this.columnCount - 1) * this.gap;
+        this.cardWidth = (availableWidth - totalGapSpace) / this.columnCount;
+        
+        // ⭐ 初始化列高度数组（从 topPadding 开始）
+        const columnHeights = new Array(this.columnCount).fill(topPadding);
         
         // 计算每个卡片的位置
         this.layoutData = this.allItems.map((item, index) => {
@@ -791,9 +796,9 @@ class ImageGallery {
             const minHeight = Math.min(...columnHeights);
             const columnIndex = columnHeights.indexOf(minHeight);
             
-            // 计算位置
+            // ⭐ 计算位置（加上左侧 padding，top 已经包含在 columnHeights 中）
             const position = {
-                left: columnIndex * (this.cardWidth + this.gap),
+                left: leftPadding + columnIndex * (this.cardWidth + this.gap),
                 top: minHeight,
                 width: this.cardWidth,
                 height: cardHeight,
