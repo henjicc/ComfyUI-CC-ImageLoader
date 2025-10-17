@@ -923,3 +923,127 @@
     width: 14px;
     height: 14px;
 }
+
+/* ⭐ 滑块控件样式 */
+.lie-slider-container {
+    padding: 4px 0;
+}
+
+.lie-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.lie-slider-label {
+    font-size: 12px;
+    color: var(--fg-color);
+}
+
+.lie-slider-value {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--selected-bg);
+    min-width: 50px;
+    text-align: right;
+}
+
+/* ⭐ 滑块轨道样式 */
+.lie-thumbnail-slider {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    outline: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+/* ⭐ 滑块轨道 - WebKit */
+.lie-thumbnail-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.lie-thumbnail-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--selected-bg);
+    border: 2px solid var(--comfy-menu-bg);
+    border-radius: 50%;
+    cursor: pointer;
+    margin-top: -5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s ease;
+}
+
+.lie-thumbnail-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.lie-thumbnail-slider::-webkit-slider-thumb:active {
+    transform: scale(1.1);
+}
+
+/* ⭐ 滑块轨道 - Firefox */
+.lie-thumbnail-slider::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.lie-thumbnail-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--selected-bg);
+    border: 2px solid var(--comfy-menu-bg);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s ease;
+}
+
+.lie-thumbnail-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+}
+
+.lie-thumbnail-slider::-moz-range-thumb:active {
+    transform: scale(1.1);
+}
+
+/* ⭐ 快捷预设按钮 */
+.lie-slider-presets {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    justify-content: space-between;
+}
+
+.lie-preset-btn {
+    flex: 1;
+    padding: 4px 8px;
+    font-size: 11px;
+    background-color: var(--input-bg);
+    color: var(--fg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lie-preset-btn:hover {
+    background-color: var(--hover-bg);
+    border-color: var(--selected-bg);
+}
+
+.lie-preset-btn:active {
+    background-color: var(--selected-bg);
+    color: white;
+}

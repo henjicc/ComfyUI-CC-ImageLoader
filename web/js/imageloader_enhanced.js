@@ -299,18 +299,20 @@ class ImageGallery {
             </div>
             <div class="lie-settings-section">
                 <div class="lie-settings-title">缩略图大小</div>
-                <label class="lie-settings-option">
-                    <input type="radio" name="thumbnail-size" value="150" ${this.settings.thumbnailSize === 150 ? 'checked' : ''}>
-                    <span>小 (150px)</span>
-                </label>
-                <label class="lie-settings-option">
-                    <input type="radio" name="thumbnail-size" value="200" ${this.settings.thumbnailSize === 200 ? 'checked' : ''}>
-                    <span>中 (200px)</span>
-                </label>
-                <label class="lie-settings-option">
-                    <input type="radio" name="thumbnail-size" value="300" ${this.settings.thumbnailSize === 300 ? 'checked' : ''}>
-                    <span>大 (300px)</span>
-                </label>
+                <div class="lie-slider-container">
+                    <div class="lie-slider-header">
+                        <span class="lie-slider-label">大小</span>
+                        <span class="lie-slider-value">${this.settings.thumbnailSize}px</span>
+                    </div>
+                    <input type="range" class="lie-thumbnail-slider" 
+                           min="100" max="400" step="50" 
+                           value="${this.settings.thumbnailSize}">
+                    <div class="lie-slider-presets">
+                        <button class="lie-preset-btn" data-size="150">小</button>
+                        <button class="lie-preset-btn" data-size="200">中</button>
+                        <button class="lie-preset-btn" data-size="300">大</button>
+                    </div>
+                </div>
             </div>
             <div class="lie-settings-section">
                 <div class="lie-settings-title">图片填充模式</div>
@@ -350,14 +352,36 @@ class ImageGallery {
             this.refreshAllCards(); // ⭐ 刷新所有卡片
         });
         
-        panel.querySelectorAll('input[name="thumbnail-size"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    this.settings.thumbnailSize = parseInt(e.target.value);
-                    this.minCardWidth = this.settings.thumbnailSize;
-                    this.saveSettings();
-                    this.calculateLayout();
-                }
+        // ⭐ 滑块控件事件
+        const slider = panel.querySelector('.lie-thumbnail-slider');
+        const sliderValue = panel.querySelector('.lie-slider-value');
+        
+        // 实时更新数值显示（拖动时）
+        slider.addEventListener('input', (e) => {
+            sliderValue.textContent = `${e.target.value}px`;
+        });
+        
+        // 松开鼠标后应用布局（使用防抖避免频繁重算）
+        const applyThumbnailSize = debounce((size) => {
+            this.settings.thumbnailSize = size;
+            this.minCardWidth = size;
+            this.saveSettings();
+            this.refreshAllCards();
+            this.calculateLayout();
+        }, 150);
+        
+        slider.addEventListener('change', (e) => {
+            applyThumbnailSize(parseInt(e.target.value));
+        });
+        
+        // ⭐ 快捷预设按钮
+        panel.querySelectorAll('.lie-preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const size = parseInt(btn.dataset.size);
+                slider.value = size;
+                sliderValue.textContent = `${size}px`;
+                applyThumbnailSize(size);
             });
         });
         
